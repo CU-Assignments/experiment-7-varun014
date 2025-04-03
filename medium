@@ -1,0 +1,122 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class ProductCRUD {
+    private static final String URL = "jdbc:mysql://localhost:3306/your_database";
+    private static final String USER = "your_username";
+    private static final String PASSWORD = "your_password";
+    private static Connection connection = null;
+
+    public static void main(String[] args) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(URL, USER, PASSWORD);
+            connection.setAutoCommit(false); // Enable transaction control
+
+            Scanner scanner = new Scanner(System.in);
+            int choice;
+            
+            do {
+                displayMenu();
+                choice = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+                
+                switch (choice) {
+                    case 1:
+                        createProduct(scanner);
+                        break;
+                    case 2:
+                        readProducts();
+                        break;
+                    case 3:
+                        updateProduct(scanner);
+                        break;
+                    case 4:
+                        deleteProduct(scanner);
+                        break;
+                    case 5:
+                        System.out.println("Exiting...");
+                        break;
+                    default:
+                        System.out.println("Invalid choice!");
+                }
+            } while (choice != 5);
+
+        } catch (ClassNotFoundException | SQLException e) {
+            e.printStackTrace();
+            tryRollback();
+        } finally {
+            closeResources();
+        }
+    }
+
+    private static void displayMenu() {
+        System.out.println("\n=== Product Management System ===");
+        System.out.println("1. Add New Product");
+        System.out.println("2. View All Products");
+        System.out.println("3. Update Product");
+        System.out.println("4. Delete Product");
+        System.out.println("5. Exit");
+        System.out.print("Enter your choice: ");
+    }
+
+    private static void createProduct(Scanner scanner) throws SQLException {
+        System.out.print("Enter Product Name: ");
+        String name = scanner.nextLine();
+        System.out.print("Enter Price: ");
+        double price = scanner.nextDouble();
+        System.out.print("Enter Quantity: ");
+        int quantity = scanner.nextInt();
+
+        String sql = "INSERT INTO Product (ProductName, Price, Quantity) VALUES (?, ?, ?)";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setDouble(2, price);
+            pstmt.setInt(3, quantity);
+            
+            int rows = pstmt.executeUpdate();
+            connection.commit();
+            System.out.println(rows + " product added successfully!");
+        } catch (SQLException e) {
+            tryRollback();
+            throw e;
+        }
+    }
+
+    private static void readProducts() throws SQLException {
+        String sql = "SELECT * FROM Product";
+        
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            System.out.println("\nProduct List:");
+            System.out.println("ID\tName\t\tPrice\tQuantity");
+            while (rs.next()) {
+                System.out.println(
+                    rs.getInt("ProductID") + "\t" +
+                    rs.getString("ProductName") + "\t" +
+                    rs.getDouble("Price") + "\t" +
+                    rs.getInt("Quantity")
+                );
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            tryRollback();
+            throw e;
+        }
+    }
+
+    private static void updateProduct(Scanner scanner) throws SQLException {
+        System.out.print("Enter Product ID to update: ");
+        int id = scanner.nextInt();
+        scanner.nextLine();
+        
+        System.out.print("New Product Name (leave blank to keep): ");
+        String name = scanner.nextLine();
+        System.out.print("New Price (0 to keep): ");
+        double price = scanner.nextDouble();
+        System.out.print("New Quantity (0 to keep): ");
+        int quantity = scanner.nextInt();
+
+        String sql = "UPDATE Product SET ProductName=COALESCE(NULLIF(?, ''), ProductName), " +
