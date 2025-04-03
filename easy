@@ -1,0 +1,55 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+public class FetchEmployeeData {
+    public static void main(String[] args) {
+        // Database credentials
+        String jdbcURL = "jdbc:mysql://localhost:3306/your_database_name"; // Replace with your database name
+        String dbUser = "your_username"; // Replace with your database username
+        String dbPassword = "your_password"; // Replace with your database password
+
+        Connection connection = null;
+        Statement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            // Load MySQL JDBC Driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            // Establish connection to the database
+            connection = DriverManager.getConnection(jdbcURL, dbUser, dbPassword);
+
+            // Create a statement object to execute SQL queries
+            statement = connection.createStatement();
+
+            // SQL query to fetch all records from the Employee table
+            String sqlQuery = "SELECT EmpID, Name, Salary FROM Employee";
+
+            // Execute the query and retrieve results in ResultSet
+            resultSet = statement.executeQuery(sqlQuery);
+
+            // Display the retrieved data
+            System.out.println("EmpID\tName\tSalary");
+            System.out.println("-------------------------");
+            while (resultSet.next()) {
+                int empID = resultSet.getInt("EmpID");
+                String name = resultSet.getString("Name");
+                double salary = resultSet.getDouble("Salary");
+                System.out.println(empID + "\t" + name + "\t" + salary);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                // Close resources in reverse order of their creation
+                if (resultSet != null) resultSet.close();
+                if (statement != null) statement.close();
+                if (connection != null) connection.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+}
